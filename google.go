@@ -9,6 +9,9 @@ import (
 	"os"
 
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/option"
 )
 
 // Retrieves a token, saves the token, then returns the generated client.
@@ -61,4 +64,37 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
+}
+
+func authServer() *drive.Service {
+	ctx := context.Background()
+	b, err := os.ReadFile("credentials.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// If modifying these scopes, delete your previously saved token.json.
+	// If not, you'll end up searching for errors for 1 hour like I did
+	config, err := google.ConfigFromJSON(b, drive.DriveReadonlyScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	client := getClient(config)
+
+	// Creating drive client so that you can create shit
+	srv, err := drive.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		log.Fatalf("Unable to retrieve Drive client: %v", err)
+	}
+
+	return srv
+}
+
+func identifyFile(srv *drive.Service, fileId string) string {
+	fileMeta, err := srv.Files.Get(fileId).Do()
+	if err != nil {
+		log.Printf("Unable to open get file meta for file. Err: %v", err)
+		return ""
+	}
+	return fileMeta.MimeType
 }
