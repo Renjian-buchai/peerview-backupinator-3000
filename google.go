@@ -4,15 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/drive/v3"
-	"google.golang.org/api/option"
 )
 
 // Retrieves a token, saves the token, then returns the generated client.
@@ -65,41 +61,4 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
-}
-
-func main() {
-	ctx := context.Background()
-	b, err := os.ReadFile("credentials.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-    config, err := google.ConfigFromJSON(b, drive.DriveReadonlyScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(config)
-
-	srv, err := drive.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
-		log.Fatalf("Unable to retrieve Drive client: %v", err)
-	}
-    
-	fileId := "1o_emY4bRNGqdPE0hzRC6ws9Vn7ERm9N2UvblqIx5SSY"
-	file, err := srv.Files.Export(fileId, "application/pdf").Download()
-	if err != nil {
-		log.Fatalf("Unable to retrieve data from document: %v", err)
-	}
-
-    output, err := os.Create("out.pdf")
-    if err != nil {
-        log.Fatalf("Unable to create file"); 
-    }
-    defer output.Close()
-
-    _, err = io.Copy(output, file.Body); 
-    if err != nil {
-        log.Fatalf("Fuck you, the final part of this is fucked")
-    }
 }
